@@ -18,6 +18,12 @@ genre_cols = [
 movies_cols = ['movie_id', 'title', 'release_date', 'video_release_date', 'imdb_url'] + genre_cols
 movies = pd.read_csv('../data/u.item', sep='|', names=movies_cols, encoding='latin-1')
 
+# Create a new column 'genres' containing a list of genres
+movies['genres'] = movies.apply(lambda row: [col for col in genre_cols if row[col] == 1], axis=1)
+
+# Drop the individual genre columns
+movies = movies.drop(columns=genre_cols)
+
 # API to get information about users
 @app.route('/api/users', methods=['GET'])
 def get_users():
