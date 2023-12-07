@@ -3,7 +3,7 @@ import findspark
 findspark.init()
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DateType, ArrayType
 
 spark = (SparkSession.builder
             .appName("ElasticsearchSparkIntegration")
@@ -31,25 +31,7 @@ movies_schema = StructType([
     StructField("title", StringType()),
     StructField("release_date", StringType()),
     StructField("imdb_url", StringType()),
-    StructField("genre_unknown", IntegerType()),
-    StructField("Action", IntegerType()),
-    StructField("Adventure", IntegerType()),
-    StructField("Animation", IntegerType()),
-    StructField("Children", IntegerType()),
-    StructField("Comedy", IntegerType()),
-    StructField("Crime", IntegerType()),
-    StructField("Documentary", IntegerType()),
-    StructField("Drama", IntegerType()),
-    StructField("Fantasy", IntegerType()),
-    StructField("Film-Noir", IntegerType()),
-    StructField("Horror", IntegerType()),
-    StructField("Musical", IntegerType()),
-    StructField("Mystery", IntegerType()),
-    StructField("Romance", IntegerType()),
-    StructField("Sci-Fi", IntegerType()),
-    StructField("Thriller", IntegerType()),
-    StructField("War", IntegerType()),
-    StructField("Western", IntegerType())
+    StructField("genres", ArrayType(StringType()))  # Change this line to represent genres as a list of strings
 ])
 
 ratings_schema = StructType([
