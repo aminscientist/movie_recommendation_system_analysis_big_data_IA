@@ -31,14 +31,14 @@ movies_schema = StructType([
     StructField("title", StringType()),
     StructField("release_date", StringType()),
     StructField("imdb_url", StringType()),
-    StructField("genres", ArrayType(StringType()))  # Change this line to represent genres as a list of strings
+    StructField("genres", ArrayType(StringType()))
 ])
 
 ratings_schema = StructType([
     StructField("user_id", IntegerType()),
     StructField("movie_id", IntegerType()),
     StructField("rating", IntegerType()),
-    StructField("unix_timestamp", StringType())  # Replace StringType with the actual type
+    StructField("unix_timestamp", StringType())
 ])
 
 # Read data from Kafka topics into Spark DataFrames
@@ -72,24 +72,17 @@ ratings_stream_df = (spark
                      .select(from_json("value", ratings_schema).alias("data"))
                      .select("data.*"))
 
+def create_query(stream_df):
+    return (stream_df
+            .writeStream
+            .outputMode("append")
+            .format("console")
+            .start())
+
 # Output to console for testing
-users_query = (users_stream_df
-               .writeStream
-               .outputMode("append")
-               .format("console")
-               .start())
-
-movies_query = (movies_stream_df
-                .writeStream
-                .outputMode("append")
-                .format("console")
-                .start())
-
-ratings_query = (ratings_stream_df
-                 .writeStream
-                 .outputMode("append")
-                 .format("console")
-                 .start())
+users_query = create_query(users_stream_df)
+movies_query = create_query(movies_stream_df)
+ratings_query = create_query(ratings_stream_df)
 
 # Await termination of the streaming queries
 users_query.awaitTermination()
