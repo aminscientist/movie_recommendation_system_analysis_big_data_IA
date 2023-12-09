@@ -2,15 +2,21 @@
 import findspark
 findspark.init()
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DateType, ArrayType
+from pyspark.sql.functions import from_json, to_date, col
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType
 
 spark = (SparkSession.builder
             .appName("ElasticsearchSparkIntegration")
-            .config("spark.jars.packages", "org.elasticsearch:elasticsearch-spark-20_2.12:7.17.14,"
+            .config("spark.jars.packages", "org.elasticsearch:elasticsearch-spark-30_2.12:8.11.0,"
                     "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4")
-            #.config("spark.sql.execution.arrow.pyspark.enabled", "true")
             .getOrCreate())
+
+# Define Elasticsearch settings
+es_settings = {
+    "es.nodes": "localhost",
+    "es.port": "9200",
+    "es.input.json": "true"
+}
 
 # Define the Kafka topics
 users_topic = "users_topic"
@@ -38,7 +44,7 @@ ratings_schema = StructType([
     StructField("user_id", IntegerType()),
     StructField("movie_id", IntegerType()),
     StructField("rating", IntegerType()),
-    StructField("unix_timestamp", StringType())
+    StructField("unix_timestamp", IntegerType())
 ])
 
 # Read data from Kafka topics into Spark DataFrames
@@ -60,7 +66,9 @@ movies_stream_df = (spark
                     .load()
                     .selectExpr("CAST(value AS STRING)")
                     .select(from_json("value", movies_schema).alias("data"))
-                    .select("data.*"))
+                    .select("data.*")
+                    .withColumn("release_date", to_date(col("release_date"), "dd-MMM-yyyy")))
+
 
 ratings_stream_df = (spark
                      .readStream
@@ -72,6 +80,20 @@ ratings_stream_df = (spark
                      .select(from_json("value", ratings_schema).alias("data"))
                      .select("data.*"))
 
+query = users_stream_df.writeStream \
+    .format("org.elasticsearch.spark.sql") \
+    .outputMode("append") \
+    .option("es.resource", "users_index_test") \
+    .option("es.nodes", "localhost") \
+    .option("es.port", "9200") \
+    .option("es.nodes.wan.only", "true")\
+    .option("es.index.auto.create", "false")\
+    .option("checkpointLocation", "./checkpointLocation/tmp/") \
+    .start()
+
+query = users_stream_df.writeStream.outputMode("append").format("console").start()
+query.awaitTermination()
+
 def create_query(stream_df):
     return (stream_df
             .writeStream
@@ -80,11 +102,11 @@ def create_query(stream_df):
             .start())
 
 # Output to console for testing
-users_query = create_query(users_stream_df)
-movies_query = create_query(movies_stream_df)
-ratings_query = create_query(ratings_stream_df)
+#users_query = create_query(users_stream_df)
+#movies_query = create_query(movies_stream_df)
+#ratings_query = create_query(ratings_stream_df)
 
 # Await termination of the streaming queries
-users_query.awaitTermination()
-movies_query.awaitTermination()
-ratings_query.awaitTermination()
+#users_query.awaitTermination()
+#movies_query.awaitTermination()
+#ratings_query.awaitTermination()
