@@ -12,12 +12,12 @@ spark = (SparkSession.builder
                                         "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4")
          .getOrCreate())
 
-# Define Elasticsearch settings
-es_settings = {
-    "es.nodes": "localhost",
-    "es.port": "9200",
-    "es.input.json": "true"
-}
+# # Define Elasticsearch settings
+# es_settings = {
+#     "es.nodes": "localhost",
+#     "es.port": "9200",
+#     "es.input.json": "true"
+# }
 
 # Define the Kafka topics
 users_topic = "users_topic"
