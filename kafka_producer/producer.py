@@ -13,11 +13,13 @@ kafka_config = {
 users_topic = 'users_topic'
 movies_topic = 'movies_topic'
 ratings_topic = 'ratings_topic'
+combined_collection_topic = 'combined_collection_topic'
 
 # Flask API URLs
 users_api_url = 'http://localhost:5000/api/users'
 movies_api_url = 'http://localhost:5000/api/movies'
 ratings_api_url = 'http://localhost:5000/api/ratings'
+combined_collection_url = 'http://localhost:5000/api/combined_collection'
 
 def delivery_report(err, msg):
     if err is not None:
@@ -52,7 +54,8 @@ if __name__ == '__main__':
         futures = [
             executor.submit(produce_data_with_delay, users_api_url, producer, users_topic),
             executor.submit(produce_data_with_delay, movies_api_url, producer, movies_topic),
-            executor.submit(produce_data_with_delay, ratings_api_url, producer, ratings_topic)
+            executor.submit(produce_data_with_delay, ratings_api_url, producer, ratings_topic),
+            executor.submit(produce_data_with_delay, combined_collection_url, producer, combined_collection_topic)
         ]
 
         # Wait for all futures to complete
@@ -60,4 +63,4 @@ if __name__ == '__main__':
             future.result()
 
     # Sleep for a while to allow the producer to finish delivering messages
-    time.sleep(5)
+    time.sleep(2)
