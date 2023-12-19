@@ -23,6 +23,7 @@ spark = (SparkSession.builder
 users_topic = "users_topic"
 movies_topic = "movies_topic"
 ratings_topic = "ratings_topic"
+combined_collection_topic = "combined_collection_topic"
 
 # Define the schema for the Kafka messages
 users_schema = StructType([
@@ -44,6 +45,21 @@ movies_schema = StructType([
 ratings_schema = StructType([
     StructField("user_id", IntegerType()),
     StructField("movie_id", IntegerType()),
+    StructField("rating", IntegerType()),
+    StructField("unix_timestamp", IntegerType())
+])
+
+combined_collection_schema = StructType([
+    StructField("user_id", IntegerType()),
+    StructField("age", IntegerType()),
+    StructField("sex", StringType()),
+    StructField("occupation", StringType()),
+    StructField("zip_code", StringType()),
+    StructField("movie_id", IntegerType()),
+    StructField("title", StringType()),
+    StructField("release_date", StringType()),
+    StructField("imdb_url", StringType()),
+    StructField("genres", ArrayType(StringType())),
     StructField("rating", IntegerType()),
     StructField("unix_timestamp", IntegerType())
 ])
@@ -80,6 +96,16 @@ ratings_stream_df = (spark
                      .select(from_json("value", ratings_schema).alias("data"))
                      .select("data.*"))
 
+combined_collection_stream_df = (spark
+                    .readStream
+                    .format("kafka")
+                    .option("kafka.bootstrap.servers", "localhost:9092")
+                    .option("subscribe", combined_collection_topic)
+                    .load()
+                    .selectExpr("CAST(value AS STRING)")
+                    .select(from_json("value", combined_collection_schema).alias("data"))
+                    .select("data.*")
+                    .withColumn("release_date", to_date(col("release_date"), "dd-MMM-yyyy")))
 
 # query = ratings_stream_df.writeStream \
 #     .format("org.elasticsearch.spark.sql") \
@@ -129,10 +155,14 @@ movies_es_query, movies_console_query = write_to_elasticsearch_and_console(movie
 ratings_es_query, ratings_console_query = write_to_elasticsearch_and_console(ratings_stream_df, "ratings_index",
                                                                              "./checkpointLocation/ratings/")
 
+# Write data from combined dataset collection topic to Elasticsearch index and Console
+combined_collection_es_query, combined_collection_console_query = write_to_elasticsearch_and_console(combined_collection_stream_df, "combined_collection_index",
+                                                                             "./checkpointLocation/combined_collection/")
 # Await termination of the streaming queries
 users_es_query.awaitTermination()
 movies_es_query.awaitTermination()
 ratings_es_query.awaitTermination()
+combined_collection_es_query.awaitTermination()
 
 
 # def create_query(stream_df):
