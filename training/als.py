@@ -8,12 +8,11 @@ findspark.init()
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
 from pyspark.sql import SparkSession
+from server.server import ratings
 
 ALS_MODEL_PATH = "als_model"
 
 if __name__ == '__main__':
-    ratings_dict = get_all_ratings_dict()
-
     spark = (SparkSession.builder
              .appName("ElasticsearchSparkMllibIntegration")
              .config("spark.jars.packages", "org.elasticsearch:elasticsearch-spark-30_2.12:8.11.0,")
@@ -24,12 +23,13 @@ if __name__ == '__main__':
     # ratingsRDD = parts.map(lambda p: Row(userId=int(p[0]), movieId=int(p[1]),
     #                                      rating=float(p[2]), timestamp=int(p[3])))
 
-    ratings = spark.createDataFrame(ratings_dict)
+    ratings.iteritems = ratings.items
+    ratings = spark.createDataFrame(ratings)
     (training, test) = ratings.randomSplit([0.9, 0.1])
 
     # Build the recommendation model using ALS on the training data
     # Note we set cold start strategy to 'drop' to ensure we don't get NaN evaluation metrics
-    als = ALS(maxIter=5, regParam=0.01, userCol="user_id", itemCol="movie_id", ratingCol="rating",
+    als = ALS(maxIter=10, regParam=0.05, rank=20, userCol="user_id", itemCol="movie_id", ratingCol="rating",
               coldStartStrategy="drop")
     model = als.fit(training)
 
